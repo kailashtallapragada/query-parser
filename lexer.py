@@ -21,7 +21,7 @@ class Lexer:
         if keyword in keywords:
             return keyword, len(keyword) + i
         else:
-            raise SyntaxError from None
+            raise SyntaxError("Unexpected Keyword '" + keyword + "'")
 
     def __is_block_start(self, i):
         return self.query[i] == "("
@@ -33,7 +33,7 @@ class Lexer:
         if self.query[i] == '"' or self.query[i] == "'":
             ei = self.query.find(self.query[i], i + 1, len(self.query))
             if ei == -1:
-                raise SyntaxError from None
+                raise SyntaxError("Unexpected end of query.")
             return self.query[i + 1: ei], ei + 1
         else:
             break_word = re.search(r"\s|\(|\)|\"|'", self.query[i: len(self.query)])
@@ -53,6 +53,8 @@ class Lexer:
                 return True, None, i + 1
             else:
                 return False, None, None
+        elif mode != 'END' and i >= len(self.query):
+            raise SyntaxError("Unexpected end of query.")
         elif mode == 'BLOCK_START':
             if self.__is_block_start(i):
                 return True, '(', i + 1
@@ -82,7 +84,7 @@ class Lexer:
             elif read_mode == 'BLOCK_END':
                 block_count -= 1
             if block_count < 0:
-                raise SyntaxError from None
+                raise SyntaxError("Unexpected '" + self.query[ci - 1:] + "'")
             for mode in rules[read_mode]:
                 is_success, token, i = self.__exec_rules(ci, mode)
                 if is_success:
@@ -91,7 +93,7 @@ class Lexer:
                     tokens.append(Token(mode, token))
                     break
         if block_count > 0:
-            raise SyntaxError from None
+            raise SyntaxError("Unexpected end of query.")
         return tokens
 
     def get_tokens(self):
